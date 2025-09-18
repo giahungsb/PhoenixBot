@@ -1,0 +1,44 @@
+[2025-09-13T08:21:14.923Z] [ERROR]:[32m'Failed to connect to MongoDB!'[39m
+[2025-09-13T08:41:16.718Z] [ERROR]:[32m'Error start Server: connect ECONNREFUSED 127.0.0.1:4041'[39m
+[2025-09-13T08:50:26.741Z] [ERROR]:[32m'Error start Server: connect ECONNREFUSED 127.0.0.1:4041'[39m
+[2025-09-13T08:57:11.866Z] [ERROR]:[32m'Error start Server: connect ECONNREFUSED 127.0.0.1:4041'[39m
+[2025-09-13T09:00:39.720Z] [ERROR]:[32m'Error start Server: connect ECONNREFUSED 127.0.0.1:4041'[39m
+[2025-09-13T09:04:12.567Z] [ERROR]:[32m'Error start Server: connect ECONNREFUSED 127.0.0.1:4041'[39m
+[2025-09-13T09:05:22.524Z] [ERROR]:[32m'Error start Server: connect ECONNREFUSED 127.0.0.1:4041'[39m
+[2025-09-13T09:08:19.101Z] [ERROR]:[32m'Error start Server: connect ECONNREFUSED 127.0.0.1:4041'[39m
+[2025-09-13T11:55:26.149Z] [ERROR]:[32m'Error logging in: An invalid token was provided.'[39m
+[2025-09-13T11:55:26.150Z] [ERROR]:[32m"The Bot Token You Entered Into Your Project Is Incorrect Or Your Bot's INTENTS Are OFF!"[39m
+[2025-09-14T05:05:47.858Z] [ERROR]:[32m'Error logging in: An invalid token was provided.'[39m
+[2025-09-14T05:05:47.859Z] [ERROR]:[32m"The Bot Token You Entered Into Your Project Is Incorrect Or Your Bot's INTENTS Are OFF!"[39m
+[2025-09-14T05:06:17.586Z] [ERROR]:[32m'Error start Server: connect ECONNREFUSED 127.0.0.1:4040'[39m
+[2025-09-14T11:10:24.155Z] [ERROR]:[32m'Error logging in: An invalid token was provided.'[39m
+[2025-09-14T11:10:24.157Z] [ERROR]:[32m"The Bot Token You Entered Into Your Project Is Incorrect Or Your Bot's INTENTS Are OFF!"[39m
+[2025-09-14T14:09:35.856Z] [ERROR]:[32m'Error logging in: An invalid token was provided.'[39m
+[2025-09-14T14:09:35.857Z] [ERROR]:[32m"The Bot Token You Entered Into Your Project Is Incorrect Or Your Bot's INTENTS Are OFF!"[39m
+[2025-09-14T15:56:08.579Z] [ERROR]:[32m'Error logging in: An invalid token was provided.'[39m
+[2025-09-14T15:56:08.580Z] [ERROR]:[32m"The Bot Token You Entered Into Your Project Is Incorrect Or Your Bot's INTENTS Are OFF!"[39m
+[2025-09-14T16:00:03.886Z] [ERROR]:[32m'Error start Server: connect ECONNREFUSED 127.0.0.1:4040'[39m
+[2025-09-14T16:36:16.211Z] [ERROR]:[32m'Error logging in: An invalid token was provided.'[39m
+[2025-09-14T16:36:16.212Z] [ERROR]:[32m"The Bot Token You Entered Into Your Project Is Incorrect Or Your Bot's INTENTS Are OFF!"[39m
+[2025-09-14T17:39:16.640Z] [ERROR]:[32m'Error start Server: connect ECONNREFUSED 127.0.0.1:4040'[39m
+[2025-09-15T01:38:20.090Z] [ERROR]:[32m'Error start Server: connect ECONNREFUSED 127.0.0.1:4040'[39m
+[2025-09-15T01:39:22.185Z] [ERROR]:[32m'Error start Server: connect ECONNREFUSED 127.0.0.1:4040'[39m
+[2025-09-15T01:39:22.186Z] [ERROR]:[32m'Error logging in: An invalid token was provided.'[39m
+[2025-09-15T01:39:22.186Z] [ERROR]:[32m"The Bot Token You Entered Into Your Project Is Incorrect Or Your Bot's INTENTS Are OFF!"[39m
+[2025-09-15T05:43:04.761Z] [ERROR]:[32m'Error logging in: An invalid token was provided.'[39m
+[2025-09-15T05:43:04.762Z] [ERROR]:[32m"The Bot Token You Entered Into Your Project Is Incorrect Or Your Bot's INTENTS Are OFF!"[39m
+[2025-09-15T06:04:06.253Z] [ERROR]:[32m'Error logging in: An invalid token was provided.'[39m
+[2025-09-15T06:04:06.254Z] [ERROR]:[32m"The Bot Token You Entered Into Your Project Is Incorrect Or Your Bot's INTENTS Are OFF!"[39m
+[2025-09-15T06:06:56.134Z] [ERROR]:[32m'Error logging in: An invalid token was provided.'[39m
+[2025-09-15T06:06:56.135Z] [ERROR]:[32m"The Bot Token You Entered Into Your Project Is Incorrect Or Your Bot's INTENTS Are OFF!"[39m
+[2025-09-15T09:03:28.220Z] [ERROR]:[32m'Error logging in: An invalid token was provided.'[39m
+[2025-09-15T09:03:28.220Z] [ERROR]:[32m"The Bot Token You Entered Into Your Project Is Incorrect Or Your Bot's INTENTS Are OFF!"[39m
+[2025-09-15T12:17:07.748Z] [ERROR]:[32m'Error logging in: An invalid token was provided.'[39m
+[2025-09-15T12:17:07.748Z] [ERROR]:[32m"The Bot Token You Entered Into Your Project Is Incorrect Or Your Bot's INTENTS Are OFF!"[39m
+[2025-09-15T14:14:12.073Z] [ERROR]:[32m'Error start Server: connect ECONNREFUSED 127.0.0.1:4040'[39m
+[2025-09-15T14:14:28.893Z] [ERROR]:[32m'Error start Server: connect ECONNREFUSED 127.0.0.1:4040'[39m
+[2025-09-15T14:15:23.025Z] [ERROR]:[32m'Error start Server: connect ECONNREFUSED 127.0.0.1:4040'[39m
+[2025-09-15T18:36:18.785Z] [ERROR]:[32m'Error logging in: An invalid token was provided.'[39m
+[2025-09-15T18:36:18.786Z] [ERROR]:[32m"The Bot Token You Entered Into Your Project Is Incorrect Or Your Bot's INTENTS Are OFF!"[39m
+[2025-09-16T04:25:44.210Z] [ERROR]:[32m'Error logging in: An invalid token was provided.'[39m
+[2025-09-16T04:25:44.211Z] [ERROR]:[32m"The Bot Token You Entered Into Your Project Is Incorrect Or Your Bot's INTENTS Are OFF!"[39m
