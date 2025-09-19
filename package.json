@@ -15,6 +15,9 @@
 		"type": "git",
 		"url": "git+https://github.com/zijipia/Ziji-bot-discord.git"
 	},
+ "engines": {
+    "node": "22.x"
+  },
 	"keywords": [
 		"ziji",
 		"ziji-bot-discord",
