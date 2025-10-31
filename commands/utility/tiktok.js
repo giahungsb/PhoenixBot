@@ -1,14 +1,55 @@
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, AttachmentBuilder } = require("discord.js");
 const Tiktok = require("@tobyg74/tiktok-api-dl");
-const TikTokDownloadAccelerator = require("../../lib/tiktok-download-accelerator");
+const axios = require("axios");
+const fs = require("fs").promises;
+const path = require("path");
+const archiver = require("archiver");
 
-const accelerator = TikTokDownloadAccelerator.getInstance({
-        cacheExpireTime: 1800000,
-        maxRetries: 3,
-        timeout: 90000,
-        maxCacheSize: 200 * 1024 * 1024,
-        maxFileSize: 25 * 1024 * 1024
-});
+async function downloadFile(url, outputPath) {
+        const response = await axios({
+                method: 'GET',
+                url: url,
+                responseType: 'stream',
+                timeout: 60000,
+        });
+        
+        const writer = require('fs').createWriteStream(outputPath);
+        response.data.pipe(writer);
+        
+        return new Promise((resolve, reject) => {
+                writer.on('finish', resolve);
+                writer.on('error', reject);
+        });
+}
+
+async function cleanupFiles(...filePaths) {
+        for (const filePath of filePaths) {
+                try {
+                        await fs.unlink(filePath);
+                } catch (error) {
+                }
+        }
+}
+
+async function createZipFromImages(imagePaths, outputPath) {
+        return new Promise((resolve, reject) => {
+                const output = require('fs').createWriteStream(outputPath);
+                const archive = archiver('zip', {
+                        zlib: { level: 9 }
+                });
+
+                output.on('close', () => resolve());
+                archive.on('error', (err) => reject(err));
+
+                archive.pipe(output);
+
+                imagePaths.forEach((imgPath, index) => {
+                        archive.file(imgPath, { name: `image_${index + 1}.jpg` });
+                });
+
+                archive.finalize();
+        });
+}
 
 module.exports.data = {
         name: "tiktok",
@@ -23,7 +64,7 @@ module.exports.data = {
                 },
         ],
         integration_types: [0, 1],
-        contexts: [0, 1, 2],
+        contexts: [0, 1],
 };
 
 module.exports.execute = async ({ interaction, lang }) => {
@@ -58,50 +99,149 @@ module.exports.execute = async ({ interaction, lang }) => {
 
                 if (isImageSlideshow) {
                         const images = data.images || [];
-                        const downloadUrl = images.length > 0 ? images[0] : null;
-
-                        const previewEmbed = new EmbedBuilder()
-                                .setColor("#00f2ea")
-                                .setTitle("📸 TikTok Image Slideshow")
-                                .setDescription(`**${title}**`)
-                                .addFields(
-                                        { name: "👤 Tác giả", value: authorName, inline: true },
-                                        { name: "🖼️ Số ảnh", value: `${images.length}`, inline: true }
-                                )
-                                .setImage(downloadUrl)
-                                .setThumbnail(authorAvatar)
-                                .setFooter({ text: `Yêu cầu bởi ${interaction.user.username}`, iconURL: interaction.user.displayAvatarURL() })
-                                .setTimestamp();
-
-                        const buttons = new ActionRowBuilder();
-                        if (downloadUrl) {
-                                buttons.addComponents(
-                                        new ButtonBuilder()
-                                                .setLabel("📥 Tải ảnh đầu tiên")
-                                                .setURL(downloadUrl)
-                                                .setStyle(ButtonStyle.Link)
-                                );
+                        
+                        if (images.length === 0) {
+                                return interaction.editReply({
+                                        content: "❌ Không tìm thấy ảnh trong slideshow.",
+                                });
                         }
 
-                        if (images.length > 1) {
-                                buttons.addComponents(
-                                        new ButtonBuilder()
-                                                .setLabel(`📋 Xem tất cả ${images.length} ảnh`)
-                                                .setURL(url)
-                                                .setStyle(ButtonStyle.Link)
-                                );
-                        }
-
-                        const downloadEmbed = new EmbedBuilder()
-                                .setColor("#ff0050")
-                                .setTitle("⬇️ Tải xuống ảnh")
-                                .setDescription(`Nhấn nút bên dưới để tải xuống ảnh từ slideshow TikTok.\n\n**Tổng số ảnh:** ${images.length}`)
-                                .setFooter({ text: "Chất lượng: HD" });
-
-                        return interaction.editReply({
-                                embeds: [previewEmbed, downloadEmbed],
-                                components: buttons.components.length > 0 ? [buttons] : [],
+                        await interaction.editReply({
+                                content: `⏳ Đang tải ${images.length} ảnh...`,
                         });
+
+                        const tmpDir = path.join(process.cwd(), 'tmp');
+                        try {
+                                await fs.mkdir(tmpDir, { recursive: true });
+                        } catch (error) {
+                        }
+
+                        const downloadedImages = [];
+                        const zipPath = path.join(tmpDir, `tiktok_${interaction.id}_images.zip`);
+                        
+                        try {
+                                for (let i = 0; i < images.length; i++) {
+                                        try {
+                                                const imagePath = path.join(tmpDir, `tiktok_${interaction.id}_${i}.jpg`);
+                                                await downloadFile(images[i], imagePath);
+                                                downloadedImages.push({ path: imagePath, index: i });
+                                        } catch (error) {
+                                        }
+                                }
+
+                                if (downloadedImages.length === 0) {
+                                        return interaction.editReply({
+                                                content: "❌ Không thể tải ảnh. Vui lòng thử lại sau.",
+                                        });
+                                }
+
+                                await interaction.editReply({
+                                        content: `⏳ Đang tạo file ZIP chứa ${downloadedImages.length} ảnh...`,
+                                });
+                                
+                                await createZipFromImages(downloadedImages.map(img => img.path), zipPath);
+                                
+                                const zipAttachment = new AttachmentBuilder(zipPath, {
+                                        name: 'tiktok_slideshow.zip'
+                                });
+
+                                let currentPage = 0;
+                                
+                                const generateEmbed = (page) => {
+                                        return new EmbedBuilder()
+                                                .setColor("#00f2ea")
+                                                .setTitle("📸 TikTok Image Slideshow")
+                                                .setDescription(`**${title}**\n\n👤 **Tác giả:** ${authorName}\n\n📦 **File ZIP chứa tất cả ${downloadedImages.length} ảnh đã được đính kèm bên dưới!**`)
+                                                .setImage(`attachment://current_image.jpg`)
+                                                .setThumbnail(authorAvatar)
+                                                .setFooter({ 
+                                                        text: `Ảnh ${page + 1}/${downloadedImages.length} | Yêu cầu bởi ${interaction.user.username}`, 
+                                                        iconURL: interaction.user.displayAvatarURL() 
+                                                })
+                                                .setTimestamp();
+                                };
+
+                                const generateButtons = (page) => {
+                                        const row = new ActionRowBuilder();
+                                        
+                                        if (downloadedImages.length > 1) {
+                                                row.addComponents(
+                                                        new ButtonBuilder()
+                                                                .setCustomId(`tiktok_prev_${interaction.id}`)
+                                                                .setLabel("⬅️ Trước")
+                                                                .setStyle(ButtonStyle.Primary)
+                                                                .setDisabled(page === 0)
+                                                );
+                                        }
+                                        
+                                        if (downloadedImages.length > 1) {
+                                                row.addComponents(
+                                                        new ButtonBuilder()
+                                                                .setCustomId(`tiktok_next_${interaction.id}`)
+                                                                .setLabel("➡️ Sau")
+                                                                .setStyle(ButtonStyle.Primary)
+                                                                .setDisabled(page === downloadedImages.length - 1)
+                                                );
+                                        }
+                                        
+                                        return row;
+                                };
+
+                                const getCurrentAttachment = (page) => {
+                                        return new AttachmentBuilder(downloadedImages[page].path, { 
+                                                name: 'current_image.jpg' 
+                                        });
+                                };
+
+                                const message = await interaction.editReply({
+                                        content: null,
+                                        embeds: [generateEmbed(currentPage)],
+                                        components: downloadedImages.length > 1 ? [generateButtons(currentPage)] : [],
+                                        files: [getCurrentAttachment(currentPage), zipAttachment],
+                                });
+
+                                if (downloadedImages.length > 1) {
+                                        const collector = message.createMessageComponentCollector({
+                                                filter: (i) => i.customId.startsWith('tiktok_') && i.customId.endsWith(`_${interaction.id}`),
+                                                time: 300000
+                                        });
+
+                                        collector.on('collect', async (i) => {
+                                                if (i.customId === `tiktok_prev_${interaction.id}`) {
+                                                        currentPage = Math.max(0, currentPage - 1);
+                                                } else if (i.customId === `tiktok_next_${interaction.id}`) {
+                                                        currentPage = Math.min(downloadedImages.length - 1, currentPage + 1);
+                                                }
+
+                                                const zipAttachmentFromMessage = message.attachments.find(a => a.name === 'tiktok_slideshow.zip');
+                                                
+                                                await i.update({
+                                                        embeds: [generateEmbed(currentPage)],
+                                                        components: [generateButtons(currentPage)],
+                                                        files: [getCurrentAttachment(currentPage)],
+                                                        attachments: zipAttachmentFromMessage ? [zipAttachmentFromMessage] : [],
+                                                });
+                                        });
+
+                                        collector.on('end', async () => {
+                                                try {
+                                                        await message.edit({ components: [] });
+                                                } catch (error) {
+                                                }
+                                                
+                                                await cleanupFiles(...downloadedImages.map(img => img.path), zipPath);
+                                        });
+                                } else {
+                                        setTimeout(async () => {
+                                                await cleanupFiles(...downloadedImages.map(img => img.path), zipPath);
+                                        }, 60000);
+                                }
+                        } catch (error) {
+                                await cleanupFiles(...downloadedImages.map(img => img.path), zipPath);
+                                throw error;
+                        }
+
+                        return;
                 } else {
                         const videoHD = data.videoHD;
                         const videoSD = data.videoSD;
@@ -115,71 +255,95 @@ module.exports.execute = async ({ interaction, lang }) => {
                                 });
                         }
 
-                        const previewEmbed = new EmbedBuilder()
-                                .setColor("#00f2ea")
-                                .setTitle("🎥 TikTok Video")
-                                .setDescription(`**${title}**`)
-                                .addFields(
-                                        { name: "👤 Tác giả", value: authorName, inline: true },
-                                        { name: "📹 Chất lượng", value: videoHD ? "Full HD" : (videoSD ? "SD" : "Standard"), inline: true }
-                                )
-                                .setThumbnail(authorAvatar)
-                                .setFooter({ text: `Yêu cầu bởi ${interaction.user.username}`, iconURL: interaction.user.displayAvatarURL() })
-                                .setTimestamp();
-
                         await interaction.editReply({
-                                embeds: [previewEmbed],
-                                content: "⚡ Đang tải video với tốc độ cao...",
+                                content: `⏳ Đang tải video ${videoHD ? "HD" : "SD"}...`,
                         });
 
+                        const tmpDir = path.join(process.cwd(), 'tmp');
                         try {
-                                console.log('[TikTok Command] Starting accelerated download...');
-                                const videoBuffer = await accelerator.download(videoUrl);
-                                
-                                const fileSizeMB = (videoBuffer.length / 1024 / 1024).toFixed(2);
-                                console.log(`[TikTok Command] Downloaded video: ${fileSizeMB} MB`);
+                                await fs.mkdir(tmpDir, { recursive: true });
+                        } catch (error) {
+                        }
 
-                                const attachment = new AttachmentBuilder(videoBuffer, {
-                                        name: `tiktok_${Date.now()}.mp4`,
-                                        description: title.substring(0, 100),
-                                        contentType: 'video/mp4'
+                        const videoPath = path.join(tmpDir, `tiktok_${interaction.id}.mp4`);
+
+                        try {
+                                await downloadFile(videoUrl, videoPath);
+
+                                const stats = await fs.stat(videoPath);
+                                const fileSizeMB = stats.size / (1024 * 1024);
+
+                                if (fileSizeMB > 25) {
+                                        await cleanupFiles(videoPath);
+                                        
+                                        const videoEmbed = new EmbedBuilder()
+                                                .setColor("#00f2ea")
+                                                .setTitle("🎥 TikTok Video")
+                                                .setDescription(`**${title}**\n\n⚠️ Video quá lớn để upload (${fileSizeMB.toFixed(1)}MB). Bạn có thể tải xuống qua link bên dưới.`)
+                                                .addFields(
+                                                        { name: "👤 Tác giả", value: authorName, inline: true },
+                                                        { name: "📹 Chất lượng", value: videoHD ? "Full HD" : (videoSD ? "SD" : "Standard"), inline: true }
+                                                )
+                                                .setThumbnail(authorAvatar)
+                                                .setFooter({ text: `Yêu cầu bởi ${interaction.user.username}`, iconURL: interaction.user.displayAvatarURL() })
+                                                .setTimestamp();
+
+                                        const downloadButton = new ActionRowBuilder().addComponents(
+                                                new ButtonBuilder()
+                                                        .setLabel("📥 Tải Video " + (videoHD ? "HD" : "SD"))
+                                                        .setURL(videoUrl)
+                                                        .setStyle(ButtonStyle.Link)
+                                        );
+
+                                        return interaction.editReply({
+                                                content: null,
+                                                embeds: [videoEmbed],
+                                                components: [downloadButton],
+                                        });
+                                }
+
+                                const videoAttachment = new AttachmentBuilder(videoPath, {
+                                        name: 'tiktok_video.mp4'
                                 });
 
-                                const successEmbed = new EmbedBuilder()
-                                        .setColor("#00ff00")
-                                        .setTitle("✅ Tải xuống thành công")
-                                        .setDescription(`**Dung lượng:** ${fileSizeMB} MB\n**Codec:** H.264 (tương thích mọi thiết bị) 📱💻\n**Tốc độ:** Tăng tốc 3-5 lần 🚀`)
-                                        .setFooter({ text: "Chất lượng: " + (videoHD ? "Full HD | Không watermark | H.264 codec" : "SD | Không watermark | H.264 codec") });
+                                const videoEmbed = new EmbedBuilder()
+                                        .setColor("#00f2ea")
+                                        .setTitle("🎥 TikTok Video")
+                                        .setDescription(`**${title}**`)
+                                        .addFields(
+                                                { name: "👤 Tác giả", value: authorName, inline: true },
+                                                { name: "📹 Chất lượng", value: videoHD ? "Full HD" : (videoSD ? "SD" : "Standard"), inline: true },
+                                                { name: "💾 Kích thước", value: `${fileSizeMB.toFixed(1)}MB`, inline: true }
+                                        )
+                                        .setThumbnail(authorAvatar)
+                                        .setFooter({ text: `Yêu cầu bởi ${interaction.user.username}`, iconURL: interaction.user.displayAvatarURL() })
+                                        .setTimestamp();
 
-                                console.log('[TikTok Command] Sending video to Discord...');
-                                return interaction.editReply({
+                                await interaction.editReply({
                                         content: null,
-                                        embeds: [previewEmbed, successEmbed],
-                                        files: [attachment],
+                                        embeds: [videoEmbed],
+                                        files: [videoAttachment],
                                         components: [],
                                 });
 
-                        } catch (downloadError) {
-                                console.error('[TikTok Command] Accelerated download failed:', downloadError.message);
+                                await cleanupFiles(videoPath);
 
-                                let downloadEmbed;
-                                if (downloadError.message === 'FILE_TOO_LARGE') {
-                                        console.log('[TikTok Command] File too large for Discord, sending link instead');
-                                        downloadEmbed = new EmbedBuilder()
-                                                .setColor("#ff9900")
-                                                .setTitle("⚠️ File quá lớn")
-                                                .setDescription(`Video có dung lượng **${downloadError.sizeMB} MB** (vượt quá giới hạn 25MB của Discord).\n\nVui lòng tải qua link bên dưới.`)
-                                                .setFooter({ text: "Chất lượng: " + (videoHD ? "Full HD | Không có watermark" : "SD | Không có watermark") });
-                                } else {
-                                        console.log('[TikTok Command] Download error, falling back to link method');
-                                        downloadEmbed = new EmbedBuilder()
-                                                .setColor("#ff0050")
-                                                .setTitle("⬇️ Tải xuống video")
-                                                .setDescription("Không thể tải trực tiếp, vui lòng tải qua link bên dưới.")
-                                                .setFooter({ text: "Chất lượng: " + (videoHD ? "Full HD | Không có watermark" : "SD | Không có watermark") });
-                                }
+                        } catch (error) {
+                                await cleanupFiles(videoPath);
+                                
+                                const videoEmbed = new EmbedBuilder()
+                                        .setColor("#00f2ea")
+                                        .setTitle("🎥 TikTok Video")
+                                        .setDescription(`**${title}**\n\n⚠️ Không thể xử lý video. Bạn có thể tải xuống qua link bên dưới.`)
+                                        .addFields(
+                                                { name: "👤 Tác giả", value: authorName, inline: true },
+                                                { name: "📹 Chất lượng", value: videoHD ? "Full HD" : (videoSD ? "SD" : "Standard"), inline: true }
+                                        )
+                                        .setThumbnail(authorAvatar)
+                                        .setFooter({ text: `Yêu cầu bởi ${interaction.user.username}`, iconURL: interaction.user.displayAvatarURL() })
+                                        .setTimestamp();
 
-                                const buttons = new ActionRowBuilder().addComponents(
+                                const downloadButton = new ActionRowBuilder().addComponents(
                                         new ButtonBuilder()
                                                 .setLabel("📥 Tải Video " + (videoHD ? "HD" : "SD"))
                                                 .setURL(videoUrl)
@@ -188,22 +352,20 @@ module.exports.execute = async ({ interaction, lang }) => {
 
                                 return interaction.editReply({
                                         content: null,
-                                        embeds: [previewEmbed, downloadEmbed],
-                                        components: [buttons],
+                                        embeds: [videoEmbed],
+                                        components: [downloadButton],
                                 });
                         }
                 }
         } catch (error) {
-                console.error("TikTok download error:", error);
-                
-                const errorMessage = interaction.deferred || interaction.replied
-                        ? { content: "❌ Đã xảy ra lỗi khi xử lý video TikTok. Vui lòng thử lại sau hoặc kiểm tra link." }
-                        : { content: "❌ Đã xảy ra lỗi khi xử lý video TikTok. Vui lòng thử lại sau hoặc kiểm tra link.", ephemeral: true };
+                const errorMessage = {
+                        content: "❌ Đã xảy ra lỗi khi xử lý video TikTok. Vui lòng thử lại sau hoặc kiểm tra link."
+                };
 
                 if (interaction.deferred || interaction.replied) {
                         return interaction.editReply(errorMessage);
                 } else {
-                        return interaction.reply(errorMessage);
+                        return interaction.reply({ ...errorMessage, ephemeral: true });
                 }
         }
 };
