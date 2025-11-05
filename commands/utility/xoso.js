@@ -902,7 +902,9 @@ module.exports = {
                         }
                 }
 
-                // Kiểm tra trùng số cuối với các giải khác (bỏ qua ĐB và Khuyến Khích)
+                // Kiểm tra trùng số cuối với các giải (theo quy tắc xổ số miền Nam)
+                // - Giải có 2, 3, 4 số: Vé trùng N số cuối → Trúng
+                // - Giải có 5, 6 số: Chỉ trúng khi trùng chính xác (đã kiểm tra ở trên)
                 for (const prize of results.prizes) {
                         const prizeLower = prize.name.toLowerCase();
                         if (prizeLower.includes("khuyến khích") || 
@@ -919,43 +921,16 @@ module.exports = {
                                 }
                                 
                                 const numberLength = number.length;
-                                const ticketLast = ticket.slice(-numberLength);
                                 
-                                // Trùng số cuối
-                                if (ticketLast === number) {
-                                        return {
-                                                won: true,
-                                                prize: prize.name,
-                                                winningNumber: number,
-                                        };
-                                }
-                        }
-                }
-                
-                // Kiểm tra trùng 2 số cuối (giải khác)
-                for (const prize of results.prizes) {
-                        const prizeLower = prize.name.toLowerCase();
-                        if (prizeLower.includes("khuyến khích") || 
-                            prizeLower.includes("đặc biệt") || 
-                            prizeLower.includes("db") ||
-                            prizeLower.includes("đb")) {
-                                continue;
-                        }
-                        
-                        for (const number of prize.numbers) {
-                                // Bỏ qua số trùng với ĐB
-                                if (specialPrize && number === specialPrize) {
-                                        continue;
-                                }
-                                
-                                if (ticket.length >= 2 && number.length >= 2) {
-                                        const ticket2Last = ticket.slice(-2);
-                                        const number2Last = number.slice(-2);
+                                // Chỉ kiểm tra trùng số cuối với giải có 2, 3, 4 số
+                                // (Giải 8, Giải 7, Giải 6, Giải 5)
+                                if (numberLength >= 2 && numberLength <= 4) {
+                                        const ticketLast = ticket.slice(-numberLength);
                                         
-                                        if (ticket2Last === number2Last) {
+                                        if (ticketLast === number) {
                                                 return {
                                                         won: true,
-                                                        prize: prize.name + " (Trùng 2 số cuối)",
+                                                        prize: prize.name,
                                                         winningNumber: number,
                                                 };
                                         }
