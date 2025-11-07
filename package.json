@@ -10,15 +10,14 @@
 		"test": "echo \"Error: no test specified\" && exit 1",
 		"check": "prettier --ignore-path .gitignore --check .",
 		"format": "prettier --ignore-path .gitignore --write ."
-		
 	},
 	"repository": {
 		"type": "git",
 		"url": "git+https://github.com/zijipia/Ziji-bot-discord.git"
 	},
- "engines": {
-    "node": "22.x"
-  },
+	"engines": {
+		"node": "22.x"
+	},
 	"keywords": [
 		"ziji",
 		"ziji-bot-discord",
@@ -33,17 +32,22 @@
 	"dependencies": {
 		"@discord-player/extractor": "^7.1.0",
 		"@discordjs/voice": "^0.19.0",
+		"@ffprobe-installer/ffprobe": "^2.1.2",
 		"@google/generative-ai": "^0.24.0",
 		"@iamtraction/google-translate": "^2.0.1",
 		"@snazzah/davey": "^0.1.6",
+		"@tobyg74/tiktok-api-dl": "^1.3.7",
 		"@zibot/db": "^0.0.2",
 		"@zibot/ziencryptor": "^0.0.1",
 		"@zibot/ziextractor": "^2.3.10",
 		"@zibot/zihooks": "^1.0.9",
+		"archiver": "^7.0.1",
 		"axios": "^1.7.7",
+		"axios-cookiejar-support": "^6.0.4",
 		"bgutils-js": "^3.2.0",
 		"canvacord": "^6.0.2",
 		"chalk": "^4.1.2",
+		"cheerio": "^1.1.2",
 		"cors": "^2.8.5",
 		"discord-gamecord": "^4.4.2",
 		"discord-giveaways": "^6.0.1",
@@ -65,10 +69,13 @@
 		"readline": "^1.3.0",
 		"sharp": "^0.34.0",
 		"simple-git": "^3.27.0",
+		"snapsave-media-downloader": "^2.3.1",
 		"table": "^6.8.2",
+		"tough-cookie": "^5.1.2",
 		"txtgen": "^3.0.7",
 		"winston": "^3.17.0",
-		"ws": "^8.18.0"
+		"ws": "^8.18.0",
+		"youtubei.js": "^16.0.1"
 	},
 	"devDependencies": {
 		"cross-env": "^10.0.0",
