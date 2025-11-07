@@ -36,6 +36,11 @@ module.exports.data = {
 
 module.exports.execute = async ({ interaction, lang }) => {
         try {
+                // Defer reply immediately to prevent "Unknown interaction" error
+                if (!interaction.deferred && !interaction.replied) {
+                        await interaction.deferReply();
+                }
+
                 const ZiRank = useFunctions().get("ZiRank");
                 const DataBase = useDB();
                 const config = useConfig();
@@ -76,7 +81,7 @@ async function handleInitializationError(interaction, isDatabaseError) {
                 })
                 .setTimestamp();
         
-        return await interaction.reply({ embeds: [errorEmbed], flags: 64 });
+        return await interaction.editReply({ embeds: [errorEmbed] });
 }
 
 async function initiatePvPBattle(interaction, opponent, DataBase, ZiRank) {
@@ -183,7 +188,7 @@ async function showCooldownMessage(interaction, cooldownCheck) {
                 })
                 .setTimestamp();
 
-        return await interaction.reply({ embeds: [cooldownEmbed], flags: 64 });
+        return await interaction.editReply({ embeds: [cooldownEmbed] });
 }
 
 function hasValidTeam(huntStats) {
@@ -208,7 +213,7 @@ async function showNoAnimalsError(interaction, isChallenger) {
                 })
                 .setTimestamp();
                 
-        return await interaction.reply({ embeds: [errorEmbed], flags: 64 });
+        return await interaction.editReply({ embeds: [errorEmbed] });
 }
 
 async function showOpponentNoAnimalsError(interaction, opponent) {
@@ -222,7 +227,7 @@ async function showOpponentNoAnimalsError(interaction, opponent) {
                 })
                 .setTimestamp();
                 
-        return await interaction.reply({ embeds: [errorEmbed], flags: 64 });
+        return await interaction.editReply({ embeds: [errorEmbed] });
 }
 
 async function showCannotChallengeSelf(interaction) {
@@ -236,7 +241,7 @@ async function showCannotChallengeSelf(interaction) {
                 })
                 .setTimestamp();
                 
-        return await interaction.reply({ embeds: [errorEmbed], flags: 64 });
+        return await interaction.editReply({ embeds: [errorEmbed] });
 }
 
 async function showCannotChallengeBot(interaction) {
@@ -250,7 +255,7 @@ async function showCannotChallengeBot(interaction) {
                 })
                 .setTimestamp();
                 
-        return await interaction.reply({ embeds: [errorEmbed], flags: 64 });
+        return await interaction.editReply({ embeds: [errorEmbed] });
 }
 
 async function showInsufficientFunds(interaction, battleCost, userCoin) {
@@ -264,7 +269,7 @@ async function showInsufficientFunds(interaction, battleCost, userCoin) {
                 })
                 .setTimestamp();
                 
-        return await interaction.reply({ embeds: [errorEmbed], flags: 64 });
+        return await interaction.editReply({ embeds: [errorEmbed] });
 }
 
 function simulatePvEBattle(userDB) {
@@ -580,7 +585,7 @@ async function showBattleResult(interaction, battleResult, userDB) {
                                 .setEmoji('🏹')
                 );
 
-        await interaction.reply({ embeds: [battleEmbed], components: [row] });
+        await interaction.editReply({ embeds: [battleEmbed], components: [row] });
 }
 
 async function showPvPChallenge(interaction, opponent, challengerData, opponentData) {
@@ -595,7 +600,7 @@ async function showPvPChallenge(interaction, opponent, challengerData, opponentD
                 })
                 .setTimestamp();
                 
-        return await interaction.reply({ embeds: [pvpEmbed], flags: 64 });
+        return await interaction.editReply({ embeds: [pvpEmbed] });
 }
 
 async function handleCommandError(interaction, error) {

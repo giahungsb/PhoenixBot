@@ -29,6 +29,11 @@ module.exports.data = {
 
 module.exports.execute = async ({ interaction, lang }) => {
         try {
+                // Defer reply immediately to prevent "Unknown interaction" error
+                if (!interaction.deferred && !interaction.replied) {
+                        await interaction.deferReply();
+                }
+
                 const ZiRank = useFunctions().get("ZiRank");
                 const DataBase = useDB();
                 const config = useConfig();
@@ -51,14 +56,27 @@ module.exports.execute = async ({ interaction, lang }) => {
                         userLang = lang;
                 }
 
-                const userDB = await DataBase.ZiUser.findOne({ userID: userId });
+                let userDB = await DataBase.ZiUser.findOne({ userID: userId });
 
+                // Tạo user mới nếu chưa tồn tại
+                if (!userDB) {
+                        userDB = await DataBase.ZiUser.create({
+                                userID: userId,
+                                level: 1,
+                                xp: 1,
+                                volume: 100,
+                                color: "Random",
+                                coin: 1000,
+                                totalAnimals: 0,
+                                huntStats: {}
+                        });
+                }
 
                 // Tính toán chi phí săn bắn với giảm giá theo cấp độ
                 const huntCost = calculateHuntCost(userDB);
                 
                 // Kiểm tra xem người dùng có đủ Zigold không
-                if (!userDB || (userDB.coin || 0) < huntCost) {
+                if ((userDB.coin || 0) < huntCost) {
                         return await showInsufficientFunds(interaction, huntCost, userDB?.coin || 0);
                 }
 
@@ -137,11 +155,13 @@ module.exports.execute = async ({ interaction, lang }) => {
                 );
 
         } catch (error) {
-                logHuntDebug('COMMAND_FATAL_ERROR', {
+                console.error('Hunt command - Fatal error:', {
                         userID: interaction.user.id,
                         guildID: interaction.guild?.id,
-                        userTag: interaction.user.tag
-                }, error);
+                        userTag: interaction.user.tag,
+                        error: error.message,
+                        stack: error.stack
+                });
                 await handleCommandError(interaction, error);
         }
 };
@@ -161,7 +181,7 @@ async function handleInitializationError(interaction, isDatabaseError) {
                 })
                 .setTimestamp();
         
-        return await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+        return await interaction.editReply({ embeds: [errorEmbed] });
 }
 
 function checkHuntCooldown(userDB, now) {
@@ -205,7 +225,7 @@ async function showCooldownMessage(interaction, cooldownCheck, userDB) {
                 })
                 .setTimestamp();
 
-        return await interaction.reply({ embeds: [cooldownEmbed], ephemeral: true });
+        return await interaction.editReply({ embeds: [cooldownEmbed] });
 }
 
 function calculateHuntCost(userDB) {
@@ -232,7 +252,7 @@ async function showInsufficientFunds(interaction, huntCost, userCoin) {
                 })
                 .setTimestamp();
                 
-        return await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+        return await interaction.editReply({ embeds: [errorEmbed] });
 }
 
 function generateHuntResult(userDB) {
@@ -321,24 +341,7 @@ async function updateUserHunt(DataBase, userId, now, huntResult, huntCost, lootb
                         lootboxRewards.lootboxes = 1; // Give 1 lootbox
                 }
                 
-                // Check if user exists first
-                let userExists = await DataBase.ZiUser.findOne({ userID: userId });
-                
-                if (!userExists) {
-                        // Create new user first
-                        userExists = await DataBase.ZiUser.create({
-                                userID: userId,
-                                level: 1,
-                                xp: 1,
-                                volume: 100,
-                                color: "Random",
-                                coin: 1000,
-                                totalAnimals: 0,
-                                huntStats: {}
-                        });
-                }
-                
-                // Now update existing user with conditions
+                // Update user with conditions (user already exists from command start)
                 const basicUpdateResult = await DataBase.ZiUser.findOneAndUpdate(
                         { 
                                 userID: userId,
@@ -434,7 +437,7 @@ async function showHuntError(interaction) {
                 })
                 .setTimestamp();
                 
-        return await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+        return await interaction.editReply({ embeds: [errorEmbed] });
 }
 
 function checkLevelUp(oldUserData, newUserData) {
@@ -566,7 +569,7 @@ async function sendHuntSuccessMessage(interaction, huntResult, xpReward, huntCos
                                 .setEmoji(`${huntEmoji}`)
                 );
 
-        await interaction.reply({ embeds: [successEmbed], components: [row] });
+        await interaction.editReply({ embeds: [successEmbed], components: [row] });
 }
 
 async function handleCommandError(interaction, error) {
