@@ -5,6 +5,8 @@ const { useClient, useLogger, useConfig, useFunctions } = require("@zibot/zihook
 const { useMainPlayer } = require("discord-player");
 const http = require("http");
 const ngrok = require("ngrok");
+const axios = require("axios");
+const { getTokenManager } = require("../lib/download-token-manager");
 
 async function startServer() {
         const logger = useLogger();
@@ -73,6 +75,150 @@ async function startServer() {
                 const lyrics = await LyricsFunc.search({ query: req.query?.query || req.query?.q });
                 res.json(lyrics);
         });
+
+        // =====================================================
+        // TIKTOK DOWNLOAD PROXY
+        // =====================================================
+        // Endpoint này xử lý download file qua token bảo mật
+        // 
+        // Chức năng:
+        // - Nhận token từ URL parameter (/download/:token)
+        // - Validate token và kiểm tra thời hạn (1 giờ)
+        // - Lấy URL gốc và filename từ token
+        // - Fetch file từ URL gốc (Discord CDN hoặc TikTok CDN)
+        // - Stream file về client với header force download
+        // 
+        // Lý do cần endpoint này:
+        // - Không expose URL gốc trực tiếp
+        // - Force download thay vì stream trong browser
+        // - Token có thời hạn để bảo mật
+        // - Tracking số lần download
+        // 
+        // Sử dụng bởi:
+        // - /tiktok command: Button "Tải video về máy"
+        // 
+        // ⚠️ QUAN TRỌNG:
+        // - Content-Type PHẢI là application/octet-stream
+        //   để force download, KHÔNG dùng video/mp4
+        // - Content-Disposition PHẢI có "attachment" để force download
+        // - Encode filename theo RFC 5987 để hỗ trợ Unicode
+        // =====================================================
+        
+        app.get("/download/:token", async (req, res) => {
+                try {
+                        const token = req.params.token;
+                        const tokenManager = getTokenManager();
+                        
+                        // BƯỚC 1: Validate token
+                        const tokenData = tokenManager.validateToken(token);
+                        
+                        if (!tokenData) {
+                                logger.warn(`[Download Proxy] ❌ Token không hợp lệ hoặc đã hết hạn: ${token}`);
+                                return res.status(404).json({ 
+                                        error: "Link download không hợp lệ hoặc đã hết hạn",
+                                        message: "Download link is invalid or expired"
+                                });
+                        }
+                        
+                        const { url, filename } = tokenData;
+                        logger.info(`[Download Proxy] 🔽 Đang tải: ${filename}`);
+                        
+                        // BƯỚC 2: Kiểm tra nếu là file path local hay URL remote
+                        const isLocalFile = url.startsWith('/') || url.includes('tmp/');
+                        
+                        if (isLocalFile) {
+                                // =====================================================
+                                // SERVE LOCAL FILE (TikTok converted video)
+                                // =====================================================
+                                const filePath = url;
+                                
+                                // Kiểm tra file tồn tại
+                                const fs = require('fs');
+                                if (!fs.existsSync(filePath)) {
+                                        logger.error(`[Download Proxy] ❌ File không tồn tại: ${filePath}`);
+                                        return res.status(404).json({ error: 'File không tồn tại hoặc đã bị xóa' });
+                                }
+                                
+                                const stat = fs.statSync(filePath);
+                                const encodedFilename = encodeURIComponent(filename);
+                                
+                                // Set headers để force download
+                                res.setHeader('Content-Type', 'application/octet-stream');
+                                res.setHeader('Content-Disposition', `attachment; filename="${filename}"; filename*=UTF-8''${encodedFilename}`);
+                                res.setHeader('Content-Length', stat.size);
+                                res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+                                res.setHeader('Pragma', 'no-cache');
+                                res.setHeader('Expires', '0');
+                                
+                                // Stream file
+                                const fileStream = fs.createReadStream(filePath);
+                                fileStream.pipe(res);
+                                
+                                fileStream.on('end', () => {
+                                        logger.info(`[Download Proxy] ✅ Download hoàn thành: ${filename}`);
+                                });
+                                
+                                fileStream.on('error', (error) => {
+                                        logger.error(`[Download Proxy] ❌ Lỗi stream:`, error);
+                                        if (!res.headersSent) {
+                                                res.status(500).json({ error: 'Download failed' });
+                                        }
+                                });
+                        } else {
+                                // =====================================================
+                                // FETCH REMOTE FILE (Discord CDN, etc.)
+                                // =====================================================
+                                const response = await axios({
+                                        method: 'GET',
+                                        url: url,
+                                        responseType: 'stream',
+                                        timeout: 60000,
+                                        maxRedirects: 5
+                                });
+                                
+                                const contentLength = response.headers['content-length'];
+                                const encodedFilename = encodeURIComponent(filename);
+                                
+                                res.setHeader('Content-Type', 'application/octet-stream');
+                                res.setHeader('Content-Disposition', `attachment; filename="${filename}"; filename*=UTF-8''${encodedFilename}`);
+                                
+                                if (contentLength) {
+                                        res.setHeader('Content-Length', contentLength);
+                                }
+                                
+                                res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+                                res.setHeader('Pragma', 'no-cache');
+                                res.setHeader('Expires', '0');
+                                
+                                response.data.pipe(res);
+                                
+                                response.data.on('end', () => {
+                                        logger.info(`[Download Proxy] ✅ Download hoàn thành: ${filename}`);
+                                });
+                                
+                                response.data.on('error', (error) => {
+                                        logger.error(`[Download Proxy] ❌ Lỗi stream:`, error);
+                                        if (!res.headersSent) {
+                                                res.status(500).json({ error: 'Download failed' });
+                                        }
+                                });
+                        }
+                        
+                } catch (error) {
+                        logger.error('[Download Proxy] ❌ Lỗi:', error.message);
+                        
+                        if (!res.headersSent) {
+                                res.status(500).json({ 
+                                        error: "Không thể tải file",
+                                        message: error.message 
+                                });
+                        }
+                }
+        });
+        
+        // =====================================================
+        // KẾT THÚC TIKTOK DOWNLOAD PROXY
+        // =====================================================
 
         const wss = new WebSocket.Server({ server });
 
