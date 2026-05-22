@@ -35,6 +35,24 @@ const ZiUser = Schema({
         // Quest system
         dailyQuests: { type: Array, default: [] },
         lastQuestReset: { type: Date },
+        // AI system
+        polarisHistory: { type: Array, default: [] },
+        promptHistory: { type: String, default: "" },
+        CurrentAI: { type: String, default: "" },
+        CurrentUser: { type: String, default: "" },
+        // AI usage stats and rate limiting
+        usageStats: {
+                dailyQuota: { type: Number, default: 50 },
+                dailyUsed: { type: Number, default: 0 },
+                lastResetDate: { type: Date, default: Date.now },
+                totalTokensUsed: { type: Number, default: 0 },
+                totalRequests: { type: Number, default: 0 },
+        },
+        // AI preferences
+        aiPreferences: {
+                preferredLanguage: { type: String, default: "auto" },
+                activeThreadId: { type: String, default: null },
+        },
 });
 
 const ZiAutoresponder = Schema(
@@ -106,10 +124,103 @@ const ZiConfess = Schema({
         ],
 });
 
+const ZiGoldPrice = Schema(
+        {
+                guildId: { type: String, required: true, unique: true },
+                channelId: { type: String, required: true },
+                enabled: { type: Boolean, default: true },
+                lastMessageId: { type: String, default: null },
+                lastFetchedAt: { type: Date, default: null },
+                lastPrices: { type: Schema.Types.Mixed, default: {} },
+        },
+        {
+                timestamps: true,
+        },
+);
+
+const ZiPolarisThread = Schema(
+        {
+                threadId: { type: String, required: true, unique: true },
+                userID: { type: String, required: true },
+                name: { type: String, default: "Untitled Conversation" },
+                messages: { type: Array, default: [] },
+                summary: { type: String, default: "" },
+                lastUsed: { type: Date, default: Date.now },
+                isActive: { type: Boolean, default: true },
+                metadata: {
+                        totalMessages: { type: Number, default: 0 },
+                        totalTokens: { type: Number, default: 0 },
+                        createdAt: { type: Date, default: Date.now },
+                },
+        },
+        {
+                timestamps: true,
+        },
+);
+
+const ZiFeedback = Schema(
+        {
+                userID: { type: String, required: true },
+                messageId: { type: String, required: true },
+                threadId: { type: String, default: null },
+                rating: { type: String, enum: ["positive", "negative"], required: true },
+                prompt: { type: String, required: true },
+                response: { type: String, required: true },
+                notes: { type: String, default: "" },
+                timestamp: { type: Date, default: Date.now },
+        },
+        {
+                timestamps: true,
+        },
+);
+
+const ZiAnswerCache = Schema(
+        {
+                promptHash: { type: String, required: true, unique: true },
+                prompt: { type: String, required: true },
+                response: { type: String, required: true },
+                language: { type: String, default: "auto" },
+                model: { type: String, default: "openrouter/polaris-alpha" },
+                hitCount: { type: Number, default: 0 },
+                lastHit: { type: Date, default: Date.now },
+                expiresAt: { type: Date, required: true },
+                metadata: {
+                        averageRating: { type: Number, default: 0 },
+                        totalFeedback: { type: Number, default: 0 },
+                },
+        },
+        {
+                timestamps: true,
+        },
+);
+
+const ZiLog = Schema(
+        {
+                guildId: { type: String, required: true },
+                channelId: { type: String, required: true },
+                enabled: { type: Boolean, default: true },
+                logTypes: {
+                        commands: { type: Boolean, default: true },
+                        moderation: { type: Boolean, default: true },
+                        errors: { type: Boolean, default: true },
+                        voice: { type: Boolean, default: false },
+                        join_leave: { type: Boolean, default: false },
+                },
+        },
+        {
+                timestamps: true,
+        },
+);
+
 module.exports = {
         ZiUser: model("ZiUser", ZiUser),
         ZiAutoresponder: model("ZiAutoresponder", ZiAutoresponder),
         ZiWelcome: model("ZiWelcome", ZiWelcome),
         ZiGuild: model("ZiGuild", ZiGuild),
         ZiConfess: model("ZiConfess", ZiConfess),
+        ZiGoldPrice: model("ZiGoldPrice", ZiGoldPrice),
+        ZiPolarisThread: model("ZiPolarisThread", ZiPolarisThread),
+        ZiFeedback: model("ZiFeedback", ZiFeedback),
+        ZiAnswerCache: model("ZiAnswerCache", ZiAnswerCache),
+        ZiLog: model("ZiLog", ZiLog),
 };
