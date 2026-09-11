@@ -1,0 +1,93 @@
+{
+	"name": "ziji-bot-discord",
+	"version": "7.4.3",
+	"description": "Ziji bot discord",
+	"main": "index.js",
+	"scripts": {
+		"start": "cross-env NODE_ENV=production node index.js",
+		"dev": "cross-env NODE_ENV=development nodemon index.js",
+		"deploy": "node ./deploy.js",
+		"test": "echo \"Error: no test specified\" && exit 1",
+		"check": "prettier --ignore-path .gitignore --check .",
+		"format": "prettier --ignore-path .gitignore --write ."
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/zijipia/Ziji-bot-discord.git"
+	},
+	"engines": {
+		"node": "22.x"
+	},
+	"keywords": [
+		"ziji",
+		"ziji-bot-discord",
+		"zibot"
+	],
+	"author": "Ziji",
+	"license": "ISC",
+	"bugs": {
+		"url": "https://github.com/zijipia/Ziji-bot-discord/issues"
+	},
+	"homepage": "https://github.com/zijipia/Ziji-bot-discord#readme",
+	"dependencies": {
+		"@discord-player/extractor": "^7.1.0",
+		"@discordjs/voice": "^0.19.0",
+		"@ffprobe-installer/ffprobe": "^2.1.2",
+		"@google/generative-ai": "^0.24.0",
+		"@iamtraction/google-translate": "^2.0.1",
+		"@mrnima/instagram-downloader": "^1.0.0",
+		"@snazzah/davey": "^0.1.6",
+		"@tobyg74/tiktok-api-dl": "^1.3.7",
+		"@zibot/db": "^0.0.2",
+		"@zibot/ziencryptor": "^0.0.1",
+		"@zibot/ziextractor": "^2.3.10",
+		"@zibot/zihooks": "^1.0.9",
+		"archiver": "^7.0.1",
+		"axios": "^1.7.7",
+		"axios-cookiejar-support": "^6.0.4",
+		"bgutils-js": "^3.2.0",
+		"canvacord": "^6.0.2",
+		"chalk": "^4.1.2",
+		"cheerio": "^1.1.2",
+		"cors": "^2.8.5",
+		"discord-gamecord": "^4.4.2",
+		"discord-giveaways": "^6.0.1",
+		"discord-player": "^7.1.0",
+		"discord-player-youtubei": "^1.4.2",
+		"discord.js": "^14.18.0",
+		"dotenv": "^17.0.0",
+		"express": "^5.1.0",
+		"ffmpeg-static": "^5.2.0",
+		"form-data": "^4.0.6",
+		"groq-sdk": "^0.35.0",
+		"insta-fetcher": "^1.3.35",
+		"instagram-url-direct": "^2.0.7",
+		"makeitaquote": "^8.1.1",
+		"mediaplex": "^1.0.0",
+		"mongoose": "^8.8.3",
+		"ngrok": "^5.0.0-beta.2",
+		"node-cron": "^4.1.0",
+		"opusscript": "^0.0.8",
+		"prism-media": "^1.3.5",
+		"puppeteer": "^24.31.0",
+		"puppeteer-core": "^24.31.0",
+		"scraper-instagram": "^1.0.17",
+		"sharp": "^0.34.0",
+		"snapsave-media-downloader": "^2.3.1",
+		"table": "^6.8.2",
+		"tough-cookie": "^5.1.2",
+		"txtgen": "^3.0.7",
+		"winston": "^3.17.0",
+		"ws": "^8.18.0",
+		"youtubei.js": "^16.0.1"
+	},
+	"devDependencies": {
+		"cross-env": "^10.0.0",
+		"nodemon": "^3.1.9",
+		"prettier": "^3.3.2"
+	},
+	"overrides": {
+		"fs": "file:stubs/fs",
+		"basic-ftp": "^6.0.2"
+	}
+}

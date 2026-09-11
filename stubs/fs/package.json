@@ -1,0 +1,6 @@
+{
+  "name": "fs",
+  "version": "0.0.1-security",
+  "description": "Local stub re-exporting Node.js built-in fs",
+  "main": "index.js"
+}
